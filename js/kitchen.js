@@ -2,6 +2,7 @@
  * Created by Ssoele on 26/11/2015.
  */
 var kitchen = {
+    id: 0,
     api: "",
     uid: "",
     secret: "",
@@ -96,7 +97,7 @@ var kitchen = {
 
         $('#page-stations').on('click', '.order-ready', function() {
             var orderId = $(this).parent().parent().parent().data('order');
-            $.post(kitchen.api+'orders/set/'+orderId+'/done', {
+            $.post(kitchen.api+'orders/'+orderId+'/done', {
                 uid: kitchen.uid,
                 secret: kitchen.secret,
                 done: 1
@@ -108,7 +109,7 @@ var kitchen = {
 
         $('#page-finished-orders').on('click', '.order-reopen', function() {
             var orderId = $(this).parent().parent().parent().data('order');
-            $.post(kitchen.api+'orders/set/'+orderId+'/done', {
+            $.post(kitchen.api+'orders/'+orderId+'/done', {
                 uid: kitchen.uid,
                 secret: kitchen.secret,
                 done: 0
@@ -118,7 +119,7 @@ var kitchen = {
             });
         });
 
-        $.post(kitchen.api+'products/get', {uid: kitchen.uid, secret: kitchen.secret}).done(function(data) {
+        $.post(kitchen.api+'products', {uid: kitchen.uid, secret: kitchen.secret}).done(function(data) {
             categories = data;
             $('#categories').empty();
             $('.order-list').empty();
@@ -131,9 +132,9 @@ var kitchen = {
                 $('#products').append('<div class="row" id="row-category-'+category.id+'" data-category="'+category.id+'"></h3>');
                 category.products.forEach(function(product) {
                     if(product.visible) {
-                        $('#row-category-'+category.id).append('<div class="col-lg-2 col-md-3 col-sm-3" id="products-'+product.id+'"><div class="thumbnail product" data-product-id="'+product.id+'"><img src="'+product.image+'" alt="'+product.name+'"><div class="caption"><p class="product-info"><span class="product-name">'+product.name+'</span></p></div></div></div>');
+                        $('#row-category-'+category.id).append('<div class="col-lg-2 col-md-3 col-sm-3" id="products-'+product.id+'"><div class="thumbnail product" data-product-id="'+product.id+'"><img src="https://cdn.kassakiosk.be/images/products/'+product.id+'.png" alt="'+product.name+'"><div class="caption"><p class="product-info"><span class="product-name">'+product.name+'</span></p></div></div></div>');
                     } else {
-                        $('#row-category-'+category.id).append('<div class="col-lg-2 col-md-3 col-sm-3 not-visible" id="products-'+product.id+'"><div class="thumbnail product" data-product-id="'+product.id+'"><img src="'+product.image+'" alt="'+product.name+'"><div class="caption"><p class="product-info"><span class="product-name">'+product.name+'</span></p></div></div></div>');
+                        $('#row-category-'+category.id).append('<div class="col-lg-2 col-md-3 col-sm-3 not-visible" id="products-'+product.id+'"><div class="thumbnail product" data-product-id="'+product.id+'"><img src="https://cdn.kassakiosk.be/images/products/'+product.id+'.png" alt="'+product.name+'"><div class="caption"><p class="product-info"><span class="product-name">'+product.name+'</span></p></div></div></div>');
                     }
                 });
             });
@@ -145,13 +146,13 @@ var kitchen = {
             });
             updateImages();
             updateScroll();
-            $.post(kitchen.api+'orders/get/open', {
+            $.post(kitchen.api+'orders/open', {
                 uid: kitchen.uid,
                 secret: kitchen.secret
             }).done(function(data) {
                 orders.open = data;
                 orders.open.forEach(function(order) {
-                    var dateCreated = new Date(order.date_created);
+                    var dateCreated = new Date(order.created_at);
 
                     $('#page-stations').append('<div class="col-md-3 order-container" id="order-open-'+order.id+'"></div>');
                     $('#order-open-'+order.id).append('<div class="panel panel-default order"></div>');
@@ -174,13 +175,13 @@ var kitchen = {
                     });
                     $('#order-open-'+order.id).data('order', order.id);
 
-                    $('#order-open-'+order.id+' .time-created .time').data('time', order.date_created);
+                    $('#order-open-'+order.id+' .time-created .time').data('time', order.created_at);
 
                     showPage('stations');
                     showStation('checkout');
                 });
             });
-            $.post(kitchen.api+'orders/get/finished', {
+            $.post(kitchen.api+'orders/finished', {
                 uid: kitchen.uid,
                 secret: kitchen.secret
             }).done(function(data) {
@@ -213,7 +214,7 @@ var kitchen = {
                     updateOrderList();
                 });
             });
-            $.post(kitchen.api+'stations/get', {
+            $.post(kitchen.api+'stations', {
                 uid: kitchen.uid,
                 secret: kitchen.secret
             }).done(function(data) {
@@ -235,8 +236,8 @@ var kitchen = {
             });
         }, 1000);
 
-        setInterval(function() {
-            $.post(kitchen.api+'products/get', {uid: kitchen.uid, secret: kitchen.secret}).done(function(data) {
+        /*setInterval(function() {
+            $.post(kitchen.api+'products', {uid: kitchen.uid, secret: kitchen.secret}).done(function(data) {
                 categories = data;
                 categories.forEach(function(category) {
                     if(category.visible) {
@@ -253,14 +254,14 @@ var kitchen = {
                     });
                 });
             });
-            $.post(kitchen.api+'orders/get/open', {
+            $.post(kitchen.api+'orders/open', {
                 uid: kitchen.uid,
                 secret: kitchen.secret
             }).done(function(data) {
                 $('#page-stations').empty();
                 orders.open = data;
                 orders.open.forEach(function(order) {
-                    var dateCreated = new Date(order.date_created);
+                    var dateCreated = new Date(order.created_at);
 
                     $('#page-stations').append('<div class="col-md-3 order-container" id="order-open-'+order.id+'"></div>');
                     $('#order-open-'+order.id).append('<div class="panel panel-default order"></div>');
@@ -283,50 +284,14 @@ var kitchen = {
                     });
                     $('#order-open-'+order.id).data('order', order.id);
 
-                    $('#order-open-'+order.id+' .time-created .time').data('time', order.date_created);
+                    $('#order-open-'+order.id+' .time-created .time').data('time', order.created_at);
                     updateOrderList();
                     if(currentPage == 'stations') {
                         showStation(currentStation);
                     }
                 });
-                /*data.forEach(function(order) {
-                 var listed = false;
-                 orders.open.forEach(function(oldOrders) {
-                 if(order.id == oldOrders.id) {
-
-                 listed = true;
-                 }
-                 });
-                 if(!listed) {
-                 var dateCreated = new Date(order.date_created);
-
-                 $('#page-stations').append('<div class="col-md-3 order-container" id="order-open-'+order.id+'"></div>');
-                 $('#order-open-'+order.id).append('<div class="panel panel-default order"></div>');
-                 $('#order-open-'+order.id+' .panel').append('<div class="panel-heading"></div>');
-                 $('#order-open-'+order.id+' .panel-heading').append('<h3 class="panel-title">Order '+order.id+'</h3>');
-                 $('#order-open-'+order.id+' .panel').append('<div class="panel-body"></div>');
-                 $('#order-open-'+order.id+' .panel-heading h3').append('<span class="time-created"><span class="time">'+timeSince(dateCreated)+'</span> ago</span>');
-                 $('#order-open-'+order.id+' .panel-body').append('<ul class="order-list"></ul>');
-                 $('#order-open-'+order.id+' .panel-body').append('<button type="button" class="btn btn-default btn-lg btn-block order-ready">Order is ready!</button>');
-                 order.products.forEach(function(orderProduct) {
-                 var product = getProductById(orderProduct.id)
-                 var id = '#order-'+order.id+'-product-'+product.id+'-sub-'+orderProduct.sub;
-                 $('#order-open-'+order.id+' .order-list').append('<li class="product product-id-'+product.id+'" id="order-'+order.id+'-product-'+product.id+'-sub-'+orderProduct.sub+'"></li>');
-                 $(id).append('<span class="product-amount">'+orderProduct.amount+'</span>');
-                 $(id).append('<span class="product-name">'+product.name+'</span>');
-                 if(orderProduct.sub) {
-                 $(id).append('<span class="product-sub">'+getProductById(orderProduct.sub).name+'</span>');
-                 }
-                 $(id).append('<span class="product-clear"></span>');
-                 });
-                 $('#order-open-'+order.id).data('order', order.id);
-
-                 $('#order-open-'+order.id+' .time-created .time').data('time', order.date_created);
-                 }
-                 });
-                 orders.open = data;*/
             });
-            $.post(kitchen.api+'orders/get/finished', {
+            $.post(kitchen.api+'orders/finished', {
                 uid: kitchen.uid,
                 secret: kitchen.secret
             }).done(function(data) {
@@ -360,7 +325,7 @@ var kitchen = {
                     updateOrderList();
                 });
             });
-        }, 5000);
+        }, 5000);*/
 
         function getProductById(id) {
             var returnVar;
@@ -414,7 +379,7 @@ var kitchen = {
             } else {
                 visible = 0;
             }
-            $.post(kitchen.api+'categories/set/'+id+'/visible', {
+            $.post(kitchen.api+'categories/'+id+'/visible', {
                 uid: kitchen.uid,
                 secret: kitchen.secret,
                 visible: visible
@@ -429,7 +394,7 @@ var kitchen = {
             } else {
                 visible = 0;
             }
-            $.post(kitchen.api+'products/set/'+id+'/visible', {
+            $.post(kitchen.api+'products/'+id+'/visible', {
                 uid: kitchen.uid,
                 secret: kitchen.secret,
                 visible: visible
@@ -557,6 +522,7 @@ var kitchen = {
                 $('#main-overlay').show();
             } else {
                 var setup = JSON.parse(localStorage.kitchen);
+                kitchen.id = setup.id;
                 kitchen.api = setup.api;
                 kitchen.uid = setup.uid;
                 kitchen.secret = setup.secret;
@@ -570,7 +536,9 @@ var kitchen = {
                 kitchen.secret = $('#setup-secret').val();
                 $.post(kitchen.api+'check', {uid: kitchen.uid, secret: kitchen.secret}, function(data) {
                     if(data.success) {
+                        kitchen.id = data.kiosk_id;
                         localStorage.kitchen = JSON.stringify({
+                            id: kitchen.id,
                             api: kitchen.api,
                             uid: kitchen.uid,
                             secret: kitchen.secret
